@@ -1,0 +1,82 @@
+/**
+
+This class was made by Florian Scheunert
+created 14.08.2019
+
+**/
+
+package de.FScheunert.Temperature;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class SQLManager {
+
+	private String host, db, username, password;
+	private int port;
+
+	private Connection con = null;
+
+	public SQLManager(String host, int port, String db, String username, String password) {
+		this.host = host;
+		this.port = port;
+		this.db = db;
+		this.username = username;
+		this.password = password;
+	}
+
+	/*
+	 * Baut eine neue Verbindung zu der Datenbank auf mit den im Konstruktor übergebenen Werten
+	 */
+	public void connect() {
+        try {
+            Class.forName ("com.mysql.cj.jdbc.Driver").newInstance();
+            con = DriverManager.getConnection("jdbc:mysql://" + host +":" + port + "/" + db + "?useTimezone=true&serverTimezone=UTC", username, password);
+        } catch (Exception ex) {
+        	ex.printStackTrace();
+        }
+	}
+
+	/*
+	 * Verbindung verfügbar? --> true, sonst false
+	 */
+	public boolean isConnected() {
+		return con != null;
+	}
+
+	/*
+	 * Sendet die übergebene Temperatur als Double an den Sensor mit der ID id
+	 */
+	public void update(int id, Double temperature) throws SQLException {
+		PreparedStatement ps = con.prepareStatement("INSERT INTO messures(SENSOR, TEMPERATURE) VALUES "
+				+ "('" + id + "','" + temperature + "');");
+		ps.executeUpdate();
+		ps.close();
+	}
+
+	/*
+	 * Holt aus der Datenbank den aktuellen Wert des Intervalls
+	 * Ausgabe als int in ganzen Minuten
+	 */
+	public int getIntervall() throws SQLException {
+		PreparedStatement ps = con.prepareStatement("SELECT VALUE FROM options WHERE ID = '1'");
+		ResultSet rs = ps.executeQuery();
+		int intervall = rs.next() ? rs.getInt("VALUE") : 1;
+		rs.close();
+		ps.close();
+		return intervall;
+	}
+
+	/*
+	 * Schließt die aktuelle Datenbankverbindung und öffnet eine neue
+	 */
+	public void reconnect() throws SQLException {
+		con.close();
+		connect();
+		System.out.println("tMesser: Die Verbindung zur Datenbank wurde erneuert!");
+	}
+
+}
